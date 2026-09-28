@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: supplyscope
+      POSTGRES_USER: supplyscope
+      POSTGRES_PASSWORD: supplyscope
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supplyscope"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - supplyscope-db:/var/lib/postgresql/data
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://supplyscope:supplyscope@db:5432/supplyscope
+      CORS_ORIGINS: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  supplyscope-db:
